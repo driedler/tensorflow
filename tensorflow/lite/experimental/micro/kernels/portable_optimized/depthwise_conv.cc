@@ -25,37 +25,19 @@ limitations under the License.
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/kernels/padding.h"
 
+#include "../conv_opdata.h"
+
+
 namespace tflite {
 namespace ops {
 namespace micro {
 namespace depthwise_conv {
 namespace {
 
-constexpr int kInputTensor = 0;
-constexpr int kFilterTensor = 1;
-constexpr int kBiasTensor = 2;
-constexpr int kOutputTensor = 0;
-constexpr int kMaxChannels = 64;
+
 
 // Size of the cached buffer we'll be using to hold reordered weights.
 constexpr int kReshapedFilterDataSize = 1 * 1024;
-
-struct OpData {
-  TfLitePaddingValues padding;
-  // The scaling factor from input to output (aka the 'real multiplier') can
-  // be represented as a fixed point multiplier plus a left shift.
-  int32_t output_multiplier;
-  int output_shift;
-
-  // Per channel output multiplier and shift.
-  int32_t per_channel_output_multiplier[kMaxChannels];
-  int32_t per_channel_output_shift[kMaxChannels];
-
-  // The range of the fused activation layer. For example for kNone and
-  // uint8_t these would be 0 and 255.
-  int32_t output_activation_min;
-  int32_t output_activation_max;
-};
 
 TfLiteStatus CalculateOpData(TfLiteContext* context, TfLiteNode* node,
                              TfLiteDepthwiseConvParams* params, int width,
@@ -437,6 +419,7 @@ void EvalQuantized(TfLiteContext* context, TfLiteNode* node,
 }
 
 TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
+  OpData  opdata;
   auto* params =
       reinterpret_cast<TfLiteDepthwiseConvParams*>(node->builtin_data);
 
@@ -455,7 +438,6 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
                                  params->stride_width);
   int out_height = ComputeOutSize(params->padding, height, filter_height,
                                   params->stride_height);
-  OpData data;
 
   // All per-channel quantized tensors need valid zero point and scale arrays.
   if (input->type == kTfLiteInt8) {
@@ -478,20 +460,22 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
 
   TF_LITE_ENSURE_STATUS(CalculateOpData(context, node, params, width, height,
                                         filter_width, filter_height, out_width,
-                                        out_height, data_type, &data));
+                                        out_height, data_type, &opdata));
 
   // TODO(aselle): Consider whether float conv and quantized conv should be
   // separate ops to avoid dispatch overhead here.
   switch (input->type) {  // Already know in/out types are same.
+#if 0
     case kTfLiteFloat32:
       EvalFloat(context, node, params, &data, input, filter, bias, output);
       break;
+#endif
     case kTfLiteInt8:
-      EvalQuantizedPerChannel(context, node, params, &data, input, filter, bias,
+      EvalQuantizedPerChannel(context, node, params, &opdata, input, filter, bias,
                               output);
       break;
     case kTfLiteUInt8:
-      EvalQuantized(context, node, params, &data, input, filter, bias, output);
+      EvalQuantized(context, node, params, &opdata, input, filter, bias, output);
       break;
     default:
       context->ReportError(context, "Type %s (%d) not supported.",
