@@ -340,6 +340,8 @@ TfLiteStatus MicroAllocator::InitializeRuntimeTensor(
       zero_point_data[i] = src_quantization->zero_point()->Get(i);
       scale_data[i] = src_quantization->scale()->Get(i);
     }
+
+    quantization->quantized_dimension = src_quantization->quantized_dimension();
     quantization->scale = reinterpret_cast<TfLiteFloatArray*>(scale_array);
     quantization->zero_point =
         reinterpret_cast<TfLiteIntArray*>(zero_point_array);

@@ -24,38 +24,19 @@ limitations under the License.
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/kernels/padding.h"
 
+
+#include "conv_opdata.h"
+
+
 namespace tflite {
 namespace ops {
 namespace micro {
 namespace conv {
 
-constexpr int kInputTensor = 0;
-constexpr int kFilterTensor = 1;
-constexpr int kBiasTensor = 2;
-constexpr int kOutputTensor = 0;
-constexpr int kMaxChannels = 64;
-
 // This file has 2 implementation of Conv.
 
 const int kTensorNotAllocated = -1;
 
-struct OpData {
-  TfLitePaddingValues padding;
-  // The scaling factor from input to output (aka the 'real multiplier') can
-  // be represented as a fixed point multiplier plus a left shift.
-  int32_t output_multiplier;
-  int output_shift;
-
-  // Per channel output multiplier and shift.
-  // TODO(b/141139247): Allocate these dynamically when possible.
-  int32_t per_channel_output_multiplier[kMaxChannels];
-  int32_t per_channel_output_shift[kMaxChannels];
-
-  // The range of the fused activation layer. For example for kNone and
-  // uint8_t these would be 0 and 255.
-  int32_t output_activation_min;
-  int32_t output_activation_max;
-};
 
 inline PaddingType RuntimePaddingType(TfLitePadding padding) {
   switch (padding) {
@@ -200,7 +181,9 @@ void EvalFloat(TfLiteContext* context, TfLiteNode* node,
                       GetTensorData<float>(im2col));
 }
 
+
 TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
+  OpData opdata;
   auto* params = reinterpret_cast<TfLiteConvParams*>(node->builtin_data);
 
   TfLiteTensor* output = GetOutput(context, node, kOutputTensor);
@@ -215,7 +198,7 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
   int output_width = output->dims->data[2];
   int output_height = output->dims->data[1];
 
-  OpData data;
+
 
   // All per-channel quantized tensors need valid zero point and scale arrays.
   if (input->type == kTfLiteInt8) {
@@ -234,23 +217,27 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
                       affine_quantization->scale->size);
     TF_LITE_ENSURE_EQ(context, filter->dims->data[0],
                       affine_quantization->zero_point->size);
+    TF_LITE_ENSURE(context, affine_quantization->scale->size <= kMaxChannels);
   }
+
 
   TF_LITE_ENSURE_STATUS(CalculateOpData(
       context, node, params, input_width, input_height, filter_width,
-      filter_height, output_width, output_height, input->type, &data));
+      filter_height, output_width, output_height, input->type, &opdata));
 
   switch (input->type) {  // Already know in/out types are same.
+#if 0
     case kTfLiteFloat32:
       EvalFloat(context, node, params, &data, input, filter, bias, nullptr,
                 nullptr, output);
       break;
+#endif
     case kTfLiteInt8:
-      EvalQuantizedPerChannel(context, node, params, &data, input, filter, bias,
+      EvalQuantizedPerChannel(context, node, params, &opdata, input, filter, bias,
                               output, nullptr);
       break;
     case kTfLiteUInt8:
-      EvalQuantized(context, node, params, &data, input, filter, bias, nullptr,
+      EvalQuantized(context, node, params, &opdata, input, filter, bias, nullptr,
                     nullptr, output);
       break;
     default:

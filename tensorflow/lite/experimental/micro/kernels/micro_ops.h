@@ -73,6 +73,11 @@ TfLiteRegistration* Register_STRIDED_SLICE();
 TfLiteRegistration* Register_SVDF();
 TfLiteRegistration* Register_UNPACK();
 
+
+
+TfLiteRegistration* Register_PAD();
+TfLiteRegistration* Register_MEAN();
+
 }  // namespace micro
 }  // namespace ops
 }  // namespace tflite
