@@ -33,7 +33,7 @@ inline Integer floor_log2(Integer n) {
   static_assert(sizeof(Integer) == 4 || sizeof(Integer) == 8, "");
 
   RUY_DCHECK_GE(n, 1);
-#ifdef _WIN32
+#if defined(_WIN32) && 0
   unsigned long result;  // NOLINT[runtime/int]
   if (sizeof(Integer) == 4) {
     _BitScanReverse(&result, n);

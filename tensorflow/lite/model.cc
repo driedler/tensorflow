@@ -67,9 +67,12 @@ std::unique_ptr<Allocation> GetAllocationFromFile(const char* filename,
                                                   ErrorReporter* error_reporter,
                                                   bool use_nnapi) {
   std::unique_ptr<Allocation> allocation;
+#if 0
   if (mmap_file && MMAPAllocation::IsSupported()) {
     allocation.reset(new MMAPAllocation(filename, error_reporter));
-  } else {
+  } else
+#endif
+  {
     allocation.reset(new FileCopyAllocation(filename, error_reporter));
   }
   return allocation;
