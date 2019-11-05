@@ -54,7 +54,7 @@ struct PadContext {
 };
 
 
-
+#if 0
 // Resizes output array based on the input size and padding size. This function
 // is callable from both Prepare() and Eval() as long as the caller ensures the
 // paddings data is present.
@@ -67,7 +67,9 @@ TfLiteStatus ResizeOutputTensor(TfLiteContext* context,
 
   // Determines the size of the output tensor.
   TfLiteIntArray* input_size = op_context->input->dims;
-  TfLiteIntArray* output_size = TfLiteIntArrayCopy(input_size);
+  uint8_t temp[32];
+  TfLiteIntArray* output_size = (TfLiteIntArray*)temp; // TfLiteIntArrayCopy(input_size);
+  output_size->size = input_size->size;
   const int32* paddings_data = GetTensorData<int32>(op_context->paddings);
 
   for (int idx = 0; idx < op_context->dims; ++idx) {
@@ -83,10 +85,10 @@ TfLiteStatus ResizeOutputTensor(TfLiteContext* context,
 
   return context->ResizeTensor(context, op_context->output, output_size);
 }
+#endif
 
 
-
-
+#if 0
 TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node)
 {
   TF_LITE_ENSURE(context, NumInputs(node) == 2 || NumInputs(node) == 3);
@@ -108,9 +110,10 @@ TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node)
     SetTensorToDynamic(op_context.output);
     return kTfLiteOk;
   }
-  //return ResizeOutputTensor(context, &op_context);
+  return ResizeOutputTensor(context, &op_context);
   return kTfLiteOk;
 }
+#endif
 
 
 
@@ -124,11 +127,13 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
     TF_LITE_ENSURE_EQ(context, NumElements(op_context.constant_values), 1);
   }
 
+#if 0
   // Resize the output tensor if the output tensor is dynamic.
   if (IsDynamicTensor(op_context.output)) {
-    //TF_LITE_ENSURE_OK(context, ResizeOutputTensor(context, &op_context));
+      TF_LITE_ENSURE_OK(context, ResizeOutputTensor(context, &op_context));
       TF_LITE_ENSURE(context, 0);
   }
+#endif
 
   // TODO(nupurgarg): Change kernel implementation to take in int* instead of
   // vector<int> to remove malloc from Eval().
@@ -287,7 +292,7 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
 TfLiteRegistration* Register_PAD() {
     static TfLiteRegistration r = {nullptr,
                                    nullptr,
-                                   pad::Prepare,
+                                   nullptr,
                                    pad::Eval<pad::kGenericOptimized>};
     return &r;
 }
