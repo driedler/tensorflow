@@ -20,6 +20,7 @@ limitations under the License.
 #include "tensorflow/lite/core/api/tensor_utils.h"
 #include "tensorflow/lite/experimental/micro/memory_helpers.h"
 #include "tensorflow/lite/experimental/micro/memory_planner/greedy_memory_planner.h"
+#include "tensorflow/lite/experimental/micro/memory_planner/linear_memory_planner.h"
 #include "tensorflow/lite/experimental/micro/simple_memory_allocator.h"
 
 namespace tflite {
@@ -191,7 +192,8 @@ TfLiteStatus MicroAllocator::AllocateTensors() {
   // Remaining arena size that memory planner can use for calculating offsets.
   int remaining_arena_size =
       arena_size_ - (tmp_allocator.GetDataSize() + alignment_loss);
-  GreedyMemoryPlanner planner(aligned_arena, remaining_arena_size);
+  //GreedyMemoryPlanner planner(aligned_arena, remaining_arena_size);
+  LinearMemoryPlanner planner;
 
   // Add the tensors to our allocation plan.
   for (size_t i = 0; i < tensors_->size(); ++i) {
