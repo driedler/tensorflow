@@ -20,7 +20,6 @@ limitations under the License.
 #include "tensorflow/lite/core/api/tensor_utils.h"
 #include "tensorflow/lite/experimental/micro/memory_helpers.h"
 #include "tensorflow/lite/experimental/micro/memory_planner/greedy_memory_planner.h"
-#include "tensorflow/lite/experimental/micro/memory_planner/linear_memory_planner.h"
 #include "tensorflow/lite/experimental/micro/simple_memory_allocator.h"
 
 namespace tflite {
@@ -152,7 +151,7 @@ TfLiteStatus MicroAllocator::AllocateTensors() {
     for (size_t n = 0; n < op->inputs()->size(); ++n) {
       const int tensor_index = op->inputs()->Get(n);
       TensorInfo* current = &tensor_info[tensor_index];
-      if ((current->last_used == -1) || (current->last_used > i)) {
+      if ((current->last_used == -1) || (current->last_used < i)) {
         current->last_used = i;
       }
     }
@@ -192,8 +191,7 @@ TfLiteStatus MicroAllocator::AllocateTensors() {
   // Remaining arena size that memory planner can use for calculating offsets.
   int remaining_arena_size =
       arena_size_ - (tmp_allocator.GetDataSize() + alignment_loss);
-  //GreedyMemoryPlanner planner(aligned_arena, remaining_arena_size);
-  LinearMemoryPlanner planner;
+  GreedyMemoryPlanner planner(aligned_arena, remaining_arena_size);
 
   // Add the tensors to our allocation plan.
   for (size_t i = 0; i < tensors_->size(); ++i) {
@@ -235,6 +233,13 @@ TfLiteStatus MicroAllocator::AllocateTensors() {
       current->runtime_tensor->data.uint8 = aligned_arena + offset;
       ++planner_index;
     }
+  }
+
+  // Copy default value for variable tensors. Note that this will overwrite
+  // the arena planner data so GetOffsetForBuffer will return wrong
+  // result.
+  for (size_t i = 0; i < tensors_->size(); ++i) {
+    TensorInfo* current = &tensor_info[i];
     // Set default value for variable tensors:
     if (current->flatbuffer_tensor->is_variable()) {
       if (current->runtime_tensor->data.uint8 == nullptr) {
