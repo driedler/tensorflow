@@ -1,4 +1,7 @@
 
+#include "esp_attr.h"
+
+
 #include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/c_api_internal.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
@@ -155,8 +158,7 @@ void ResolveAxis(const int* axis_data, int axis_count,
 }
 
 /*************************************************************************************************/
-template <KernelType kernel_type>
-TfLiteStatus EvalMean(TfLiteContext* context, TfLiteNode* node)
+IRAM_ATTR TfLiteStatus EvalMean(TfLiteContext* context, TfLiteNode* node)
 {
   OpData data;
   TF_LITE_ENSURE_OK(context, PrepareMeanOrSum(context, node, &data));
@@ -201,7 +203,7 @@ TfLiteStatus EvalMean(TfLiteContext* context, TfLiteNode* node)
 TfLiteRegistration* Register_MEAN()
 {
     static TfLiteRegistration r = {nullptr, nullptr, nullptr,
-                                   reduce::EvalMean<reduce::kReference>};
+                                   reduce::EvalMean};
     return &r;
 }
 

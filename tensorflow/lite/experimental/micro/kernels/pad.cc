@@ -1,3 +1,5 @@
+#include "esp_attr.h"
+
 
 #include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/c_api_internal.h"
@@ -118,8 +120,7 @@ TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node)
 
 
 
-template <KernelType kernel_type>
-TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
+IRAM_ATTR TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
   PadContext op_context(context, node);
 
   if (op_context.constant_values != nullptr) {
@@ -293,7 +294,7 @@ TfLiteRegistration* Register_PAD() {
     static TfLiteRegistration r = {nullptr,
                                    nullptr,
                                    nullptr,
-                                   pad::Eval<pad::kGenericOptimized>};
+                                   pad::Eval};
     return &r;
 }
 

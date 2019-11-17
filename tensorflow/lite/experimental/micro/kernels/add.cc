@@ -12,6 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+#include "esp_attr.h"
 
 #include "tensorflow/lite/kernels/internal/reference/add.h"
 
@@ -162,20 +163,23 @@ TfLiteStatus EvalAddQuantized(TfLiteContext* context, TfLiteNode* node,
       } else {
         TF_LITE_ADD(reference_integer_ops, Add, int8_t);
       }
-    } else {
+    }
+#if 0
+    else {
       if (need_broadcast) {
         TF_LITE_ADD(reference_ops, BroadcastAdd4DSlow, uint8_t);
       } else {
         TF_LITE_ADD(reference_ops, Add, uint8_t);
       }
     }
+#endif
 #undef TF_LITE_ADD
   }
 
   return kTfLiteOk;
 }
 
-TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
+IRAM_ATTR TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
   auto* params = reinterpret_cast<TfLiteAddParams*>(node->builtin_data);
 
   const TfLiteTensor* input1 = GetInput(context, node, kInputTensor1);
@@ -186,9 +190,13 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
   TF_LITE_ENSURE_STATUS(
       CalculateOpData(context, params, input1, input2, output, &data));
 
+#if 0
   if (output->type == kTfLiteFloat32) {
     EvalAdd(context, node, params, &data, input1, input2, output);
-  } else if (output->type == kTfLiteUInt8 || output->type == kTfLiteInt8) {
+  } else
+#endif
+  if (output->type == kTfLiteUInt8 || output->type == kTfLiteInt8)
+  {
     TF_LITE_ENSURE_OK(context, EvalAddQuantized(context, node, params, &data,
                                                 input1, input2, output));
   } else {

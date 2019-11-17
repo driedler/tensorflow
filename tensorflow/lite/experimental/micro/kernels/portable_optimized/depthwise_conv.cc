@@ -12,6 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+#include "esp_attr.h"
 
 #include "tensorflow/lite/kernels/internal/reference/integer_ops/depthwise_conv.h"
 
@@ -418,7 +419,7 @@ void EvalQuantized(TfLiteContext* context, TfLiteNode* node,
   }
 }
 
-TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
+IRAM_ATTR TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
   OpData  opdata;
   auto* params =
       reinterpret_cast<TfLiteDepthwiseConvParams*>(node->builtin_data);
@@ -474,9 +475,11 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
       EvalQuantizedPerChannel(context, node, params, &opdata, input, filter, bias,
                               output);
       break;
+#if 0
     case kTfLiteUInt8:
       EvalQuantized(context, node, params, &opdata, input, filter, bias, output);
       break;
+#endif
     default:
       context->ReportError(context, "Type %s (%d) not supported.",
                            TfLiteTypeGetName(input->type), input->type);
