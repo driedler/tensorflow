@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "esp_attr.h"
+
 #include "tensorflow/lite/kernels/internal/reference/fully_connected.h"
 
 #include "tensorflow/lite/c/builtin_op_data.h"
@@ -163,7 +165,7 @@ TfLiteStatus EvalFloat(TfLiteContext* context, TfLiteNode* node,
   return kTfLiteOk;
 }
 
-TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
+TfLiteStatus IRAM_ATTR Eval(TfLiteContext* context, TfLiteNode* node) {
   auto* params =
       reinterpret_cast<TfLiteFullyConnectedParams*>(node->builtin_data);
 
@@ -179,17 +181,20 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
                                         filter, bias, output, data));
 
   switch (filter->type) {  // Already know in/out types are same.
+#if 0
     case kTfLiteFloat32:
       return EvalFloat(context, node, params, data, input, filter, bias,
                        output);
+#endif
     case kTfLiteInt8:
       return EvalQuantizedInt8(context, node, params, data, input, filter, bias,
                                output);
 
+#if 0
     case kTfLiteUInt8:
       return EvalQuantized(context, node, params, data, input, filter, bias,
                            output);
-
+#endif
     default:
       context->ReportError(context, "Type %d not currently supported.",
                            filter->type);

@@ -13,6 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "esp_attr.h"
+
+
 #include "tensorflow/lite/kernels/internal/reference/conv.h"
 
 #include "tensorflow/lite/c/builtin_op_data.h"
@@ -182,7 +185,7 @@ void EvalFloat(TfLiteContext* context, TfLiteNode* node,
 }
 
 
-TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
+TfLiteStatus IRAM_ATTR Eval(TfLiteContext* context, TfLiteNode* node) {
   OpData opdata;
   auto* params = reinterpret_cast<TfLiteConvParams*>(node->builtin_data);
 
@@ -236,10 +239,12 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
       EvalQuantizedPerChannel(context, node, params, &opdata, input, filter, bias,
                               output, nullptr);
       break;
+#if 0
     case kTfLiteUInt8:
       EvalQuantized(context, node, params, &opdata, input, filter, bias, nullptr,
                     nullptr, output);
       break;
+#endif
     default:
       context->ReportError(context, "Type %s (%d) not supported.",
                            TfLiteTypeGetName(input->type), input->type);
